@@ -1,0 +1,23 @@
+repos:
+- repo: https://github.com/grantjenks/blue
+  rev: v0.9.1
+  hooks:
+    - id: blue
+      language_version: python3.10
+- repo: https://github.com/john-hen/Flake8-pyproject
+  rev: 0.9.1
+  hooks:
+    -   id: Flake8-pyproject
+- repo: https://github.com/pycqa/isort
+  rev: 5.12.0 # an isort release exposing the hook
+  hooks:
+    - id: isort
+      name: isort (python)
+- repo: local
+  hooks:
+    - id: pytest-check
+      name: pytest-check
+      entry: pytest
+      language: system
+      pass_filenames: false
+      always_run: true

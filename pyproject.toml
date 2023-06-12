@@ -1,0 +1,46 @@
+[tool.blue]
+line-length = 120
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | venv
+  | .venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = [
+    "venv",
+    ".venv"
+]
+
+[tool.flake8]
+ignore = ["W291", "E203", "E126"]
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs",
+    "build",
+    "dist",
+    ".venv",
+    "venv",
+    "__pypackages__",
+    "debug",
+]
+max-line-length = 120
+count = true
+per-file-ignores = "__init__.py: F401"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["tests.py", "test_*.py", "tests_*.py", "*_test.py", "*_tests.py"]
