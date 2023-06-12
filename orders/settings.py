@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 import os
 from pathlib import Path
+
 import environ
 
 env = environ.Env(DEBUG=(bool, False))
@@ -49,7 +50,7 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.vk',
-    'allauth.socialaccount.providers.github'
+    'allauth.socialaccount.providers.github',
 ]
 
 MIDDLEWARE = [
@@ -67,8 +68,7 @@ ROOT_URLCONF = 'orders.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'backend/templates/backend')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'backend/templates/backend')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -94,7 +94,7 @@ DATABASES = {
         'HOST': env('POSTGRES_HOST'),
         'PORT': env('POSTGRES_PORT'),
         'USER': env('POSTGRES_USER'),
-        'PASSWORD': env('POSTGRES_PASSWORD')
+        'PASSWORD': env('POSTGRES_PASSWORD'),
     }
 }
 
@@ -135,7 +135,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
-AUTH_USER_MODEL = "backend.User"
+AUTH_USER_MODEL = 'backend.User'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
@@ -154,24 +154,19 @@ SERVER_EMAIL = EMAIL_HOST_USER
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 40,
-
     'DEFAULT_RENDERER_CLASSES': (
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
-
     ),
-
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.TokenAuthentication',
     ),
-
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
     ],
-
     'DEFAULT_THROTTLE_RATES': {
         'user': '600/minute',
         'anon': '60/minute',

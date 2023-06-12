@@ -1,41 +1,46 @@
 from distutils.util import strtobool
+
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
-
+from django.core.validators import URLValidator
 from django.db import IntegrityError
-from django.db.models import Q, Sum, F
+from django.db.models import F, Q, Sum
 from django.http import JsonResponse
 from django.views.generic import TemplateView
 from rest_framework import viewsets
-
 from rest_framework.authtoken.models import Token
-from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 from ujson import loads as load_json
 
-from .tasks import do_import_task, new_user_registered_task, new_order_task
-from backend.models import Shop, Category, Product, ProductInfo, Parameter, ProductParameter, Order, OrderItem, \
-    Contact, ConfirmEmailToken
-from backend.serializers import UserSerializer, CategorySerializer, ShopSerializer, ProductInfoSerializer, \
-    OrderItemSerializer, OrderSerializer, ContactSerializer
+from backend.models import Category, ConfirmEmailToken, Contact, Order, OrderItem, ProductInfo, Shop
+from backend.serializers import (
+    CategorySerializer,
+    ContactSerializer,
+    OrderItemSerializer,
+    OrderSerializer,
+    ProductInfoSerializer,
+    ShopSerializer,
+    UserSerializer,
+)
+
+from .tasks import do_import_task, new_order_task, new_user_registered_task
 
 
 class RegisterAccount(APIView):
     """
     Для регистрации покупателей
     """
-    throttle_classes = (AnonRateThrottle, )
+
+    throttle_classes = (AnonRateThrottle,)
 
     # Регистрация методом POST
     def post(self, request, *args, **kwargs):
 
         # проверяем обязательные аргументы
         if {'first_name', 'last_name', 'email', 'password', 'company', 'position'}.issubset(request.data):
-            errors = {}
 
             # проверяем пароль на сложность
 
@@ -78,8 +83,9 @@ class ConfirmAccount(APIView):
         # проверяем обязательные аргументы
         if {'email', 'token'}.issubset(request.data):
 
-            token = ConfirmEmailToken.objects.filter(user__email=request.data['email'],
-                                                     key=request.data['token']).first()
+            token = ConfirmEmailToken.objects.filter(
+                user__email=request.data['email'], key=request.data['token']
+            ).first()
             if token:
                 token.user.is_active = True
                 token.user.save()
@@ -95,6 +101,7 @@ class AccountDetails(APIView):
     """
     Класс для работы данными пользователя
     """
+
     throttle_classes = (UserRateThrottle,)
 
     # получить данные
@@ -112,7 +119,6 @@ class AccountDetails(APIView):
         # проверяем обязательные аргументы
 
         if 'password' in request.data:
-            errors = {}
             # проверяем пароль на сложность
             try:
                 validate_password(request.data['password'])
@@ -138,6 +144,7 @@ class LoginAccount(APIView):
     """
     Класс для авторизации пользователей
     """
+
     throttle_classes = (AnonRateThrottle,)
 
     # Авторизация методом POST
@@ -161,6 +168,7 @@ class CategoryView(viewsets.ModelViewSet):
     """
     Класс для просмотра категорий
     """
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
@@ -169,6 +177,7 @@ class ShopView(viewsets.ModelViewSet):
     """
     Класс для просмотра списка магазинов
     """
+
     queryset = Shop.objects.filter(state=True)
     serializer_class = ShopSerializer
 
@@ -177,6 +186,7 @@ class ProductInfoView(APIView):
     """
     Класс для поиска товаров
     """
+
     throttle_classes = (AnonRateThrottle,)
 
     def get(self, request, *args, **kwargs):
@@ -192,10 +202,12 @@ class ProductInfoView(APIView):
             query = query & Q(product__category_id=category_id)
 
         # фильтруем и отбрасываем дуликаты
-        queryset = ProductInfo.objects.filter(
-            query).select_related(
-            'shop', 'product__category').prefetch_related(
-            'product_parameters__parameter').distinct()
+        queryset = (
+            ProductInfo.objects.filter(query)
+            .select_related('shop', 'product__category')
+            .prefetch_related('product_parameters__parameter')
+            .distinct()
+        )
 
         serializer = ProductInfoSerializer(queryset, many=True)
 
@@ -206,17 +218,22 @@ class BasketView(APIView):
     """
     Класс для работы с корзиной пользователя
     """
+
     throttle_classes = (UserRateThrottle,)
     # получить корзину
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
-        basket = Order.objects.filter(
-            user_id=request.user.id, state='basket').prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter').annotate(
-            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+        basket = (
+            Order.objects.filter(user_id=request.user.id, state='basket')
+            .prefetch_related(
+                'ordered_items__product_info__product__category',
+                'ordered_items__product_info__product_parameters__parameter',
+            )
+            .annotate(total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price')))
+            .distinct()
+        )
 
         serializer = OrderSerializer(basket, many=True)
         return Response(serializer.data)
@@ -291,7 +308,8 @@ class BasketView(APIView):
                 for order_item in items_dict:
                     if type(order_item['id']) == int and type(order_item['quantity']) == int:
                         objects_updated += OrderItem.objects.filter(order_id=basket.id, id=order_item['id']).update(
-                            quantity=order_item['quantity'])
+                            quantity=order_item['quantity']
+                        )
 
                 return JsonResponse({'Status': True, 'Обновлено объектов': objects_updated})
         return JsonResponse({'Status': False, 'Errors': 'Не указаны все необходимые аргументы'})
@@ -330,6 +348,7 @@ class PartnerState(APIView):
     """
     Класс для работы со статусом поставщика
     """
+
     throttle_classes = (UserRateThrottle,)
 
     # получить текущий статус
@@ -366,6 +385,7 @@ class PartnerOrders(APIView):
     """
     Класс для получения заказов поставщиками
     """
+
     throttle_classes = (UserRateThrottle,)
 
     def get(self, request, *args, **kwargs):
@@ -375,11 +395,17 @@ class PartnerOrders(APIView):
         if request.user.type != 'shop':
             return JsonResponse({'Status': False, 'Error': 'Только для магазинов'}, status=403)
 
-        order = Order.objects.filter(
-            ordered_items__product_info__shop__user_id=request.user.id).exclude(state='basket').prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
-            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+        order = (
+            Order.objects.filter(ordered_items__product_info__shop__user_id=request.user.id)
+            .exclude(state='basket')
+            .prefetch_related(
+                'ordered_items__product_info__product__category',
+                'ordered_items__product_info__product_parameters__parameter',
+            )
+            .select_related('contact')
+            .annotate(total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price')))
+            .distinct()
+        )
 
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data)
@@ -389,14 +415,14 @@ class ContactView(APIView):
     """
     Класс для работы с контактами покупателей
     """
+
     throttle_classes = (UserRateThrottle,)
     # получить мои контакты
 
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
-        contact = Contact.objects.filter(
-            user_id=request.user.id)
+        contact = Contact.objects.filter(user_id=request.user.id)
         serializer = ContactSerializer(contact, many=True)
         return Response(serializer.data)
 
@@ -462,16 +488,24 @@ class OrderView(APIView):
     """
     Класс для получения и размешения заказов пользователями
     """
+
     throttle_classes = (UserRateThrottle,)
     # получить мои заказы
+
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({'Status': False, 'Error': 'Log in required'}, status=403)
-        order = Order.objects.filter(
-            user_id=request.user.id).exclude(state='basket').prefetch_related(
-            'ordered_items__product_info__product__category',
-            'ordered_items__product_info__product_parameters__parameter').select_related('contact').annotate(
-            total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price'))).distinct()
+        order = (
+            Order.objects.filter(user_id=request.user.id)
+            .exclude(state='basket')
+            .prefetch_related(
+                'ordered_items__product_info__product__category',
+                'ordered_items__product_info__product_parameters__parameter',
+            )
+            .select_related('contact')
+            .annotate(total_sum=Sum(F('ordered_items__quantity') * F('ordered_items__product_info__price')))
+            .distinct()
+        )
 
         serializer = OrderSerializer(order, many=True)
         return Response(serializer.data)
@@ -484,10 +518,9 @@ class OrderView(APIView):
         if {'id', 'contact'}.issubset(request.data):
             if request.data['id'].isdigit():
                 try:
-                    is_updated = Order.objects.filter(
-                        user_id=request.user.id, id=request.data['id']).update(
-                        contact_id=request.data['contact'],
-                        state='new')
+                    is_updated = Order.objects.filter(user_id=request.user.id, id=request.data['id']).update(
+                        contact_id=request.data['contact'], state='new'
+                    )
                 except IntegrityError as error:
                     print(error)
                     return JsonResponse({'Status': False, 'Errors': 'Неправильно указаны аргументы'})

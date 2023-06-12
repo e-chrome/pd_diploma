@@ -1,12 +1,9 @@
-import os
-
-import yaml
-from django.test import TestCase
-from rest_framework.authtoken.models import Token
-from .models import Shop, ProductInfo, Order, User, Contact, ConfirmEmailToken
 from django.urls import reverse
-from rest_framework.test import APITestCase
 from rest_framework import status
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APITestCase
+
+from .models import ConfirmEmailToken, Order, User
 
 
 class ApiTests(APITestCase):
@@ -19,7 +16,7 @@ class ApiTests(APITestCase):
             company='macdocknack',
             position='manager',
             type='buyer',
-            is_active=True
+            is_active=True,
         )
         token = Token.objects.get_or_create(user_id=user.id)[0].key
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
@@ -45,13 +42,13 @@ class ApiTests(APITestCase):
 
     def test_confirm_register(self):
         user = User.objects.create_user(
-                first_name='Test',
-                last_name='Testov',
-                email='test99@test.com',
-                password='dgdfhjfhdbhsfjdf777',
-                company='macdocknack',
-                position='manager'
-            )
+            first_name='Test',
+            last_name='Testov',
+            email='test99@test.com',
+            password='dgdfhjfhdbhsfjdf777',
+            company='macdocknack',
+            position='manager',
+        )
         token = ConfirmEmailToken.objects.create(user_id=user.id).key
         url = reverse('backend:user-register-confirm')
         data = {'email': user.email, 'token': token}
@@ -68,7 +65,7 @@ class ApiTests(APITestCase):
             password='dgdfhjfhdbhsfjdf777',
             company='macdocknack',
             position='manager',
-            is_active=True
+            is_active=True,
         )
         url = reverse('backend:user-contact')
         token = Token.objects.create(user=user).key
@@ -86,14 +83,16 @@ class ApiTests(APITestCase):
             company='macdocknack',
             position='manager',
             type='shop',
-            is_active=True
+            is_active=True,
         )
         url = reverse('backend:partner-update')
         token = Token.objects.create(user=user).key
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
         # with open('backend/shop1.yaml') as f:
-        updated_data = {'partner': user.id,
-                        'url': 'https://raw.githubusercontent.com/netology-code/pd-diplom/master/data/shop1.yaml'}
+        updated_data = {
+            'partner': user.id,
+            'url': 'https://raw.githubusercontent.com/netology-code/pd-diplom/master/data/shop1.yaml',
+        }
         response = self.client.post(url, updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -128,7 +127,7 @@ class ApiTests(APITestCase):
             password='dgdfhjfhdbhsfjdf777',
             company='macdocknack',
             position='manager',
-            is_active=True
+            is_active=True,
         )
         token = Token.objects.create(user=user).key
         self.client.credentials(HTTP_AUTHORIZATION=f'Token {token}')
@@ -144,7 +143,7 @@ class ApiTests(APITestCase):
             password='dgdfhjfhdbhsfjdf777',
             company='macdocknack',
             position='manager',
-            is_active=True
+            is_active=True,
         )
         updated_user = {'last_name': 'Testovsky'}
         token = Token.objects.create(user=user).key
@@ -162,7 +161,7 @@ class ApiTests(APITestCase):
             password='dgdfhjfhdbhsfjdf777',
             company='macdocknack',
             position='manager',
-            is_active=True
+            is_active=True,
         )
         data = {'email': 'test99@test.com'}
         response = self.client.post(url, data)

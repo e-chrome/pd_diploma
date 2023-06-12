@@ -1,14 +1,12 @@
-
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
-from django.core.validators import URLValidator
-from django.core.exceptions import ValidationError
-
 from requests import get
-from yaml import load as load_yaml, Loader
+from yaml import Loader
+from yaml import load as load_yaml
+
 from orders.celery import celery_app
-from .models import User, Shop, Category, Product, ProductInfo, Parameter, \
-    ProductParameter, ConfirmEmailToken
+
+from .models import Category, ConfirmEmailToken, Parameter, Product, ProductInfo, ProductParameter, Shop, User
 
 
 @celery_app.task()
@@ -26,13 +24,13 @@ def password_reset_token_created_task(sender, instance, reset_password_token, **
 
     msg = EmailMultiAlternatives(
         # title:
-        f"Password Reset Token for {reset_password_token.user}",
+        f'Password Reset Token for {reset_password_token.user}',
         # message:
         reset_password_token.key,
         # from:
         settings.EMAIL_HOST_USER,
         # to:
-        [reset_password_token.user.email]
+        [reset_password_token.user.email],
     )
     msg.send()
 
@@ -47,13 +45,13 @@ def new_user_registered_task(user_id, **kwargs):
 
     msg = EmailMultiAlternatives(
         # title:
-        f"Password Reset Token for {token.user.email}",
+        f'Password Reset Token for {token.user.email}',
         # message:
         token.key,
         # from:
         settings.EMAIL_HOST_USER,
         # to:
-        [token.user.email]
+        [token.user.email],
     )
     msg.send()
 
@@ -68,15 +66,16 @@ def new_order_task(user_id, **kwargs):
 
     msg = EmailMultiAlternatives(
         # title:
-        f"Обновление статуса заказа",
+        'Обновление статуса заказа',
         # message:
         'Заказ сформирован',
         # from:
         settings.EMAIL_HOST_USER,
         # to:
-        [user.email]
+        [user.email],
     )
     msg.send()
+
 
 @celery_app.task()
 def do_import_task(partner_id, url):
@@ -107,15 +106,17 @@ def do_import_task(partner_id, url):
     for item in data['goods']:
         product, _ = Product.objects.get_or_create(name=item['name'], category_id=item['category'])
 
-        product_info = ProductInfo.objects.create(product_id=product.id,
-                                                  external_id=item['id'],
-                                                  model=item['model'],
-                                                  price=item['price'],
-                                                  price_rrc=item['price_rrc'],
-                                                  quantity=item['quantity'],
-                                                  shop_id=shop.id)
+        product_info = ProductInfo.objects.create(
+            product_id=product.id,
+            external_id=item['id'],
+            model=item['model'],
+            price=item['price'],
+            price_rrc=item['price_rrc'],
+            quantity=item['quantity'],
+            shop_id=shop.id,
+        )
         for name, value in item['parameters'].items():
             parameter_object, _ = Parameter.objects.get_or_create(name=name)
-            ProductParameter.objects.create(product_info_id=product_info.id,
-                                            parameter_id=parameter_object.id,
-                                            value=value)
+            ProductParameter.objects.create(
+                product_info_id=product_info.id, parameter_id=parameter_object.id, value=value
+            )

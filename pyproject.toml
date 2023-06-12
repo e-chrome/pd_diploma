@@ -21,7 +21,8 @@ profile = "black"
 line_length = 120
 skip = [
     "venv",
-    ".venv"
+    ".venv",
+    "migrations"
 ]
 
 [tool.flake8]
@@ -36,6 +37,7 @@ exclude = [
     "venv",
     "__pypackages__",
     "debug",
+    "migrations"
 ]
 max-line-length = 120
 count = true
